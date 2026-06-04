@@ -4,6 +4,22 @@
   const BUTTON_ID = 'attendance-fixer-button';
   const MODAL_ID = 'attendance-fixer-modal';
   const INIT_DELAY_MS = 400;
+  const SHIFT_STORAGE_KEY = 'attendanceFixerShift';
+  const DEFAULT_SHIFT_ID = 'shift_1';
+  const SHIFTS = {
+    shift_1: {
+      id: 'shift_1',
+      label: 'Ca 1: 08:30 - 17:30',
+      checkIn: [8, 15, 8, 29],
+      checkOut: [17, 31, 17, 55],
+    },
+    shift_2: {
+      id: 'shift_2',
+      label: 'Ca 2: 09:00 - 18:00',
+      checkIn: [8, 35, 8, 55],
+      checkOut: [18, 1, 18, 25],
+    },
+  };
 
   let lastUrl = '';
   let initTimer = null;
@@ -137,7 +153,8 @@
       return;
     }
 
-    const draft = buildDraft();
+    const selectedShiftId = await getSavedShiftId();
+    const draft = buildDraft(selectedShiftId);
     if (!draft.ok) {
       renderUnavailableDialog(dialog, draft.error);
       return;
@@ -148,15 +165,24 @@
     dialog.appendChild(createMeta(`ID: ${draft.id}`));
     dialog.appendChild(createMeta(`Ngày chấm công: ${formatDisplayDate(draft.attendanceDate)}`));
 
+    const shiftSelect = createShiftField(draft.shift.id);
     const checkInInput = createDateTimeField('Check-in (+7)', draft.checkInLocal);
     const checkOutInput = createDateTimeField('Check-out (+7)', draft.checkOutLocal);
+    dialog.appendChild(shiftSelect.wrapper);
     dialog.appendChild(checkInInput.wrapper);
     dialog.appendChild(checkOutInput.wrapper);
 
-    const note = document.createElement('div');
-    note.className = 'attendance-fixer-note';
-    note.textContent = 'Payload gửi server dùng UTC +0.';
-    dialog.appendChild(note);
+    shiftSelect.input.addEventListener('change', async () => {
+      const shift = getShift(shiftSelect.input.value);
+      await saveShiftId(shift.id);
+      checkInInput.input.value = toDateTimeLocalValue(randomForShift(draft.attendanceDate, shift, 'in'));
+      checkOutInput.input.value = toDateTimeLocalValue(randomForShift(draft.attendanceDate, shift, 'out'));
+    });
+
+    // const note = document.createElement('div');
+    // note.className = 'attendance-fixer-note';
+    // note.textContent = 'Payload gửi server dùng UTC +0.';
+    // dialog.appendChild(note);
 
     const errorBox = document.createElement('div');
     errorBox.className = 'attendance-fixer-error';
@@ -208,9 +234,10 @@
     checkInInput.input.focus();
   }
 
-  function buildDraft() {
+  function buildDraft(shiftId) {
     const id = getAttendanceId();
     const attendanceDate = parseDisplayDate(readFieldText('[name="ngaychamcong"] span'));
+    const shift = getShift(shiftId);
     if (!id) {
       return { ok: false, error: 'Không lấy được attendance id từ URL.' };
     }
@@ -221,17 +248,18 @@
     const currentCheckIn = parseDisplayDateTime(readFieldText('[name="check_in"] span'));
     const currentCheckOut = parseDisplayDateTime(readFieldText('[name="check_out"] span'));
 
-    const checkInLocal = isValidAttendanceTime(currentCheckIn, attendanceDate, 'in')
+    const checkInLocal = isValidAttendanceTime(currentCheckIn, attendanceDate, shift, 'in')
       ? currentCheckIn
-      : randomLocalDateTime(attendanceDate, 8, 30, 8, 55);
-    const checkOutLocal = isValidAttendanceTime(currentCheckOut, attendanceDate, 'out')
+      : randomForShift(attendanceDate, shift, 'in');
+    const checkOutLocal = isValidAttendanceTime(currentCheckOut, attendanceDate, shift, 'out')
       ? currentCheckOut
-      : randomLocalDateTime(attendanceDate, 18, 0, 18, 25);
+      : randomForShift(attendanceDate, shift, 'out');
 
     return {
       ok: true,
       id,
       attendanceDate,
+      shift,
       checkInLocal,
       checkOutLocal,
     };
@@ -272,16 +300,37 @@
     };
   }
 
-  function isValidAttendanceTime(value, date, type) {
+  function isValidAttendanceTime(value, date, shift, type) {
     if (!value || !isSameLocalDate(value, date)) {
       return false;
     }
 
     const seconds = value.hour * 3600 + value.minute * 60 + value.second;
-    if (type === 'in') {
-      return seconds >= timeToSeconds(8, 30, 0) && seconds <= timeToSeconds(8, 55, 59);
-    }
-    return seconds >= timeToSeconds(18, 0, 0) && seconds <= timeToSeconds(18, 25, 59);
+    const range = type === 'in' ? shift.checkIn : shift.checkOut;
+    return seconds >= timeToSeconds(range[0], range[1], 0) && seconds <= timeToSeconds(range[2], range[3], 59);
+  }
+
+  function getShift(shiftId) {
+    return SHIFTS[shiftId] || SHIFTS[DEFAULT_SHIFT_ID];
+  }
+
+  function randomForShift(date, shift, type) {
+    const range = type === 'in' ? shift.checkIn : shift.checkOut;
+    return randomLocalDateTime(date, range[0], range[1], range[2], range[3]);
+  }
+
+  function getSavedShiftId() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([SHIFT_STORAGE_KEY], (result) => {
+        resolve(getShift(result && result[SHIFT_STORAGE_KEY]).id);
+      });
+    });
+  }
+
+  function saveShiftId(shiftId) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [SHIFT_STORAGE_KEY]: getShift(shiftId).id }, resolve);
+    });
   }
 
   function isSameLocalDate(value, date) {
@@ -351,6 +400,28 @@
     input.type = 'datetime-local';
     input.step = '1';
     input.value = toDateTimeLocalValue(value);
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+
+    return { wrapper, input };
+  }
+
+  function createShiftField(value) {
+    const wrapper = document.createElement('label');
+    wrapper.className = 'attendance-fixer-field';
+
+    const label = document.createElement('span');
+    label.textContent = 'Ca làm việc';
+
+    const input = document.createElement('select');
+    for (const shift of Object.values(SHIFTS)) {
+      const option = document.createElement('option');
+      option.value = shift.id;
+      option.textContent = shift.label;
+      input.appendChild(option);
+    }
+    input.value = getShift(value).id;
 
     wrapper.appendChild(label);
     wrapper.appendChild(input);

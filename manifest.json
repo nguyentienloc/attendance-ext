@@ -3,7 +3,7 @@
   "name": "Attendance Fixer",
   "version": "1.0.0",
   "description": "",
-  "permissions": [],
+  "permissions": ["storage"],
   "host_permissions": [
     "http://localhost:9001/*",
     "https://erp.salely.ai/*",

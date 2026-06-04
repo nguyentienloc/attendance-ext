@@ -83,7 +83,8 @@
   font-weight: 650;
 }
 
-.attendance-fixer-field input {
+.attendance-fixer-field input,
+.attendance-fixer-field select {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   color: #111827;
@@ -93,7 +94,8 @@
   width: 100%;
 }
 
-.attendance-fixer-field input:focus {
+.attendance-fixer-field input:focus,
+.attendance-fixer-field select:focus {
   border-color: #06066f;
   box-shadow: 0 0 0 3px rgba(6, 6, 111, 0.12);
   outline: none;
