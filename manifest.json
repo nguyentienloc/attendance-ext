@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Attendance Fixer",
+  "version": "1.0.0",
+  "description": "",
+  "permissions": [],
+  "host_permissions": [
+    "http://localhost:9001/*",
+    "https://erp.salely.ai/*",
+    "http://103.98.148.187:6213/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://erp.salely.ai/odoo/attendances/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
