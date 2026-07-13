@@ -14,7 +14,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://erp.salely.ai/odoo/attendances/*"],
+      "matches": [
+        "https://erp.salely.ai/odoo/attendances/*",
+        "https://erp.salely.ai/odoo/attendances"
+      ],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"

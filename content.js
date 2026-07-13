@@ -75,7 +75,7 @@
       return;
     }
 
-    if (!document.querySelector('[name="ngaychamcong"]')) {
+    if (!document.querySelector('[name="check_in"]')) {
       return;
     }
 
@@ -87,8 +87,15 @@
   }
 
   function getAttendanceId() {
-    const match = location.pathname.match(DETAIL_URL_RE);
-    return match ? Number(match[1]) : null;
+    const pathMatch = location.pathname.match(DETAIL_URL_RE);
+    if (pathMatch) {
+      return Number(pathMatch[1]);
+    }
+    const hashMatch = location.hash.match(/\bid=(\d+)/);
+    if (hashMatch && /attendance/i.test(location.hash)) {
+      return Number(hashMatch[1]);
+    }
+    return null;
   }
 
   function ensureFixButton() {
@@ -236,17 +243,18 @@
 
   function buildDraft(shiftId) {
     const id = getAttendanceId();
-    const attendanceDate = parseDisplayDate(readFieldText('[name="ngaychamcong"] span'));
+    const checkInText = readFieldText('[name="check_in"]');
+    const attendanceDate = parseDisplayDateTime(checkInText);
     const shift = getShift(shiftId);
     if (!id) {
       return { ok: false, error: 'Không lấy được attendance id từ URL.' };
     }
     if (!attendanceDate) {
-      return { ok: false, error: 'Không đọc được Ngày chấm công.' };
+      return { ok: false, error: `Không đọc được Ngày chấm công từ check_in. Giá trị đọc được: "${checkInText}".` };
     }
 
-    const currentCheckIn = parseDisplayDateTime(readFieldText('[name="check_in"] span'));
-    const currentCheckOut = parseDisplayDateTime(readFieldText('[name="check_out"] span'));
+    const currentCheckIn = parseDisplayDateTime(readFieldText('[name="check_in"]'));
+    const currentCheckOut = parseDisplayDateTime(readFieldText('[name="check_out"]'));
 
     const checkInLocal = isValidAttendanceTime(currentCheckIn, attendanceDate, shift, 'in')
       ? currentCheckIn
@@ -267,7 +275,18 @@
 
   function readFieldText(selector) {
     const node = document.querySelector(selector);
-    return node ? node.textContent.trim() : '';
+    if (!node) {
+      return '';
+    }
+    const input = node.querySelector('input');
+    if (input) {
+      return input.value.trim();
+    }
+    const span = node.querySelector('span');
+    if (span) {
+      return span.textContent.trim();
+    }
+    return node.textContent.trim();
   }
 
   function parseDisplayDate(value) {
