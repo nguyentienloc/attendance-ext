@@ -1,5 +1,5 @@
 (function () {
-  const DETAIL_URL_RE = /\/odoo\/attendances\/(\d+)(?:[/?#]|$)/;
+  const DETAIL_URL_RE = /\/[^/]+\/attendances\/(\d+)(?:[/?#]|$)/;
   const TZ_OFFSET_HOURS = 7;
   const BUTTON_ID = 'attendance-fixer-button';
   const MODAL_ID = 'attendance-fixer-modal';
