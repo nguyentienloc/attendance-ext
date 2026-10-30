@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Attendance Fixer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "permissions": ["storage"],
   "host_permissions": [
     "http://localhost:9001/*",
     "https://erp.salely.ai/*",
-    "http://103.98.148.187:6213/*"
+    "https://apicc.neoo.io.vn/*"
   ],
   "background": {
     "service_worker": "background.js"

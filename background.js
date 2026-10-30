@@ -1,5 +1,5 @@
-const ATTENDANCE_UPDATE_URL = 'http://103.98.148.187:6213/api/attendance/update';
-const HEALTH_CHECK_URL = 'http://103.98.148.187:6213/health';
+const ATTENDANCE_UPDATE_URL = 'https://apicc.neoo.io.vn/api/attendance/update';
+const HEALTH_CHECK_URL = 'https://apicc.neoo.io.vn/health';
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || !['UPDATE_ATTENDANCE', 'CHECK_HEALTH'].includes(message.type)) {
